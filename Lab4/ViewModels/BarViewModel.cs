@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows.Media;
+using System.Collections.Generic;
 
 namespace Lab4.ViewModels
 {
@@ -8,8 +9,10 @@ namespace Lab4.ViewModels
         private double _height;
         private double _width;
         private double _top;
+        private double _left;
         private Brush _fill;
-        private int _value;
+        private Dictionary<string, double> _columnValues = new Dictionary<string, double>();
+        private string _tooltip;
 
         public double Height
         {
@@ -50,6 +53,19 @@ namespace Lab4.ViewModels
             }
         }
 
+        public double Left
+        {
+            get => _left;
+            set
+            {
+                if (_left != value)
+                {
+                    _left = value;
+                    OnPropertyChanged(nameof(Left));
+                }
+            }
+        }
+
         public Brush Fill
         {
             get => _fill;
@@ -63,20 +79,41 @@ namespace Lab4.ViewModels
             }
         }
 
-        public int Value
+        public string Tooltip
         {
-            get => _value;
+            get => _tooltip;
             set
             {
-                if (_value != value)
+                if (_tooltip != value)
                 {
-                    _value = value;
-                    OnPropertyChanged(nameof(Value));
+                    _tooltip = value;
+                    OnPropertyChanged(nameof(Tooltip));
                 }
             }
         }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
+        public Dictionary<string, double> ColumnValues
+        {
+            get => _columnValues;
+            set
+            {
+                _columnValues = value;
+                UpdateTooltip();
+                OnPropertyChanged(nameof(ColumnValues));
+            }
+        }
+
+        private void UpdateTooltip()
+        {
+            var tooltipBuilder = new System.Text.StringBuilder();
+            foreach (var kvp in _columnValues)
+            {
+                tooltipBuilder.AppendLine($"{kvp.Key}: {kvp.Value}");
+            }
+            Tooltip = tooltipBuilder.ToString().TrimEnd();
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
 
         protected virtual void OnPropertyChanged(string propertyName)
         {

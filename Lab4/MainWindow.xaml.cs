@@ -17,18 +17,47 @@ namespace Lab4
         private readonly SortingViewModel _viewModel;
         private CancellationTokenSource? _cancellationTokenSource;
 
+
         public MainWindow()
         {
-            InitializeComponent();
-            _viewModel = new SortingViewModel();
-            DataContext = _viewModel;
+            try
+            {
+                AllocConsole();
+                Console.ReadLine();
+                InitializeComponent();
+                Console.ReadLine();
+                _viewModel = new SortingViewModel();
+                Console.ReadLine();
+                DataContext = _viewModel;
+                Console.ReadLine();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
 
-        private void Canvas_SizeChanged(object sender, SizeChangedEventArgs e)
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        static extern bool AllocConsole();
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            UpdateVisualizationSize();
+        }
+
+        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            UpdateVisualizationSize();
+        }
+
+        private void UpdateVisualizationSize()
         {
             if (_viewModel != null)
             {
-                _viewModel.UpdateVisualizationSize(e.NewSize.Width, e.NewSize.Height);
+                _viewModel.UpdateVisualizationSize(
+                    visualizationCanvas.ActualWidth,
+                    visualizationCanvas.ActualHeight);
             }
         }
 

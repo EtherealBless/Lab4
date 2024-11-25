@@ -5,90 +5,62 @@ using System.Threading.Tasks;
 
 namespace Lab4
 {
-    public class SortingStep
+    public interface ISortingAlgorithm<T>
     {
-        public int[] ArrayState { get; set; }
-        public int Index1 { get; set; }
-        public int Index2 { get; set; }
-        public string Description { get; set; }
+        Task<SortingResult<T>> SortAsync(T[] array, CancellationToken cancellationToken);
+    }
 
-        public SortingStep(int[] arrayState, int index1, int index2, string description)
+    public class SelectionSort<T> : ISortingAlgorithm<T>
+    {
+        private readonly IComparer<T> _comparer;
+
+        public SelectionSort(IComparer<T> comparer)
         {
-            ArrayState = (int[])arrayState.Clone();
-            Index1 = index1;
-            Index2 = index2;
-            Description = description;
+            _comparer = comparer ?? throw new ArgumentNullException(nameof(comparer));
         }
-    }
 
-    public class SortingResult
-    {
-        public List<SortingStep> Steps { get; set; }
-        public int[] SortedArray { get; set; }
-
-        public SortingResult(List<SortingStep> steps, int[] sortedArray)
+        public async Task<SortingResult<T>> SortAsync(T[] array, CancellationToken cancellationToken)
         {
-            Steps = steps;
-            SortedArray = sortedArray;
-        }
-    }
+            var steps = new List<SortingStep<T>>();
+            var currentArray = (T[])array.Clone();
 
-    public interface ISortingAlgorithm
-    {
-        Task<SortingResult> SortAsync(int[] array, CancellationToken cancellationToken);
-    }
-
-    public class SelectionSort : ISortingAlgorithm
-    {
-        public async Task<SortingResult> SortAsync(int[] array, CancellationToken cancellationToken)
-        {
-            var steps = new List<SortingStep>();
-            int[] currentArray = (int[])array.Clone();
-            int n = array.Length;
-
-            for (int i = 0; i < n - 1 && !cancellationToken.IsCancellationRequested; i++)
+            for (int i = 0; i < array.Length - 1 && !cancellationToken.IsCancellationRequested; i++)
             {
                 int minIndex = i;
-                steps.Add(new SortingStep(currentArray, i, -1, $"Starting to find minimum from index {i}"));
+                steps.Add(new ComparisonSortingStep<T>(currentArray, i, i));
 
-                for (int j = i + 1; j < n && !cancellationToken.IsCancellationRequested; j++)
+                for (int j = i + 1; j < array.Length && !cancellationToken.IsCancellationRequested; j++)
                 {
-                    steps.Add(new SortingStep(currentArray, minIndex, j, $"Comparing elements at positions {minIndex} and {j}"));
+                    steps.Add(new ComparisonSortingStep<T>(currentArray, j, minIndex, minIndex));
 
-                    if (currentArray[j] < currentArray[minIndex])
+                    if (_comparer.Compare(currentArray[j], currentArray[minIndex]) < 0)
                     {
                         minIndex = j;
-                        steps.Add(new SortingStep(currentArray, i, minIndex, $"Found new minimum at position {minIndex}"));
                     }
                 }
 
                 if (minIndex != i)
                 {
-                    int temp = currentArray[i];
+                    // Swap elements
+                    T temp = currentArray[i];
                     currentArray[i] = currentArray[minIndex];
                     currentArray[minIndex] = temp;
-
-                    steps.Add(new SortingStep(currentArray, i, minIndex, 
-                        $"Swapped elements: position {i} ({currentArray[i]}) with position {minIndex} ({currentArray[minIndex]})"));
+                    steps.Add(new SwapSortingStep<T>(currentArray, i, minIndex));
                 }
                 else
                 {
-                    steps.Add(new SortingStep(currentArray, i, i, $"Element at position {i} is already in its correct position"));
+                    steps.Add(StatusSortingStep<T>.AlreadyInPosition(currentArray, i));
                 }
 
                 await Task.Delay(1); // Yield to prevent blocking
             }
 
             if (cancellationToken.IsCancellationRequested)
-            {
-                steps.Add(new SortingStep(currentArray, -1, -1, "Sorting cancelled"));
-            }
+                steps.Add(StatusSortingStep<T>.Cancelled(currentArray));
             else
-            {
-                steps.Add(new SortingStep(currentArray, -1, -1, "Sorting completed"));
-            }
+                steps.Add(StatusSortingStep<T>.Completed(currentArray));
 
-            return new SortingResult(steps, currentArray);
+            return new SortingResult<T>(steps);
         }
     }
 }
