@@ -46,9 +46,7 @@
 
             <GroupBox Header="Controls" Margin="0,10,0,0">
                 <StackPanel Margin="5">
-                    <Button Content="Open CSV File"
-                            Command="{Binding OpenCsvCommand}"
-                            Margin="0,0,0,5"/>
+                    
                     <Button Content="Start"
                             Command="{Binding StartCommand}"
                             Margin="0,0,0,5"/>
@@ -73,11 +71,14 @@
             <GroupBox Header="Opened CSV Files" Margin="0,10,0,0">
                 <StackPanel Margin="5">
                     <Button Content="Remove Selected File"
-                              Command="{Binding RemoveCsvFileCommand}"
-                              Margin="0,0,0,5"/>      
+                            Command="{Binding RemoveCsvFileCommand}"
+                            Margin="0,0,0,5"/>
+                    <Button Content="Open CSV File"
+                            Command="{Binding OpenCsvCommand}"
+                            Margin="0,0,0,5"/>
                     <ComboBox ItemsSource="{Binding OpenedCsvFiles}"
-                              SelectedItem="{Binding SelectedCsvFile}"
-                              Margin="0,0,0,5"/>
+                            SelectedItem="{Binding SelectedCsvFile}"
+                            Margin="0,0,0,5"/>
                     
                 </StackPanel>
             </GroupBox>
