@@ -5,6 +5,7 @@ namespace Lab4
         Selection,
         Insertion,
         Heap,
+        Shell,
         Quick
     }
 }

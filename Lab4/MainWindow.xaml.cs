@@ -1,14 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Shapes;
 using Lab4.ViewModels;
+using System;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Windows;
 
 namespace Lab4
 {
@@ -17,19 +11,14 @@ namespace Lab4
         private readonly SortingViewModel _viewModel;
         private CancellationTokenSource? _cancellationTokenSource;
 
-
         public MainWindow()
         {
             try
             {
                 AllocConsole();
-                Console.ReadLine();
                 InitializeComponent();
-                Console.ReadLine();
                 _viewModel = new SortingViewModel();
-                Console.ReadLine();
                 DataContext = _viewModel;
-                Console.ReadLine();
             }
             catch (Exception ex)
             {
@@ -37,8 +26,8 @@ namespace Lab4
             }
         }
 
-        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
-        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
         static extern bool AllocConsole();
 
         private void Window_Loaded(object sender, RoutedEventArgs e)

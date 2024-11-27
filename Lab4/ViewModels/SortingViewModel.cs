@@ -1,28 +1,16 @@
-using System;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Windows.Media;
-using System.Windows;
-using System.Linq;
-using System.Windows.Input;
 using Lab4.Commands;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Microsoft.Win32;
 using Lab4.Models;
 using Lab4.Views;
+using Microsoft.Win32;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.IO;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
 
 namespace Lab4.ViewModels
 {
-    public enum SortingAlgorithmType
-    {
-        Selection,
-        Insertion,
-        Shell,
-        Quick
-    }
-
     public class SortingViewModel : INotifyPropertyChanged
     {
         private ObservableCollection<BarViewModel> _bars;
@@ -45,6 +33,9 @@ namespace Lab4.ViewModels
         private Models.CsvData _csvData;
         private Dictionary<int, int> _elementIndentations = new Dictionary<int, int>();
         private SortingAlgorithmType _selectedAlgorithm;
+        private ObservableCollection<string> _openedCsvFiles;
+        private string _selectedCsvFile;
+        private string _currentCsvFilePath;
 
         public ICommand OpenCsvCommand { get; }
         public ICommand GenerateArrayCommand { get; }
@@ -52,6 +43,7 @@ namespace Lab4.ViewModels
         public ICommand PauseCommand { get; }
         public ICommand StepCommand { get; }
         public ICommand GoBackCommand { get; }
+        public ICommand RemoveCsvFileCommand { get; }
 
         public SortingAlgorithmType SelectedAlgorithm
         {
@@ -156,6 +148,27 @@ namespace Lab4.ViewModels
             }
         }
 
+        public ObservableCollection<string> OpenedCsvFiles
+        {
+            get => _openedCsvFiles;
+            set
+            {
+                _openedCsvFiles = value;
+                OnPropertyChanged(nameof(OpenedCsvFiles));
+            }
+        }
+
+        public string SelectedCsvFile
+        {
+            get => _selectedCsvFile;
+            set
+            {
+                _selectedCsvFile = value;
+                OnPropertyChanged(nameof(SelectedCsvFile));
+                LoadSelectedCsvFile();
+            }
+        }
+
         public SortingViewModel()
         {
             _bars = new ObservableCollection<BarViewModel>();
@@ -167,6 +180,7 @@ namespace Lab4.ViewModels
             _canStep = false;
             _canGoBack = false;
             _eventLog = new ObservableCollection<string>();
+            _openedCsvFiles = new ObservableCollection<string>();
             _selectedAlgorithm = SortingAlgorithmType.Selection;
             UpdateSortingAlgorithm();
             _currentStepIndex = -1;
@@ -178,6 +192,7 @@ namespace Lab4.ViewModels
             PauseCommand = new RelayCommand(ExecutePause, () => CanPause);
             StepCommand = new RelayCommand(ExecuteStep, () => CanStep);
             GoBackCommand = new RelayCommand(ExecuteGoBack, () => CanGoBack);
+            RemoveCsvFileCommand = new RelayCommand(ExecuteRemoveCsvFile, () => SelectedCsvFile != null);
 
             // Generate initial random array
             ExecuteGenerateArray();
@@ -187,7 +202,7 @@ namespace Lab4.ViewModels
         {
             var columns = _csvData?.SelectedColumns ?? new List<string>();
             var comparer = new CsvRowComparer(columns);
-            
+
             return _selectedAlgorithm switch
             {
                 SortingAlgorithmType.Selection => new SelectionSort<Dictionary<string, string>>(comparer),
@@ -217,10 +232,10 @@ namespace Lab4.ViewModels
                 try
                 {
                     _csvData = CsvData.LoadFromFile(dialog.FileName);
-                    
+
                     // Filter out non-numeric columns
-                    var numericColumns = _csvData.Headers.Where(header => 
-                        _csvData.Rows.Any(row => 
+                    var numericColumns = _csvData.Headers.Where(header =>
+                        _csvData.Rows.Any(row =>
                             double.TryParse(row[header], out _)
                         )
                     ).ToList();
@@ -236,11 +251,34 @@ namespace Lab4.ViewModels
                     {
                         _csvData.SelectedColumns = columnSelection.SelectedColumns;
                         await LoadCsvDataIntoArray();
+                        OpenedCsvFiles.Add(Path.GetFileName(dialog.FileName));
+                        _currentCsvFilePath = dialog.FileName;
                     }
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show($"Error loading CSV file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void ExecuteRemoveCsvFile()
+        {
+            if (SelectedCsvFile != null)
+            {
+                OpenedCsvFiles.Remove(SelectedCsvFile);
+                if (SelectedCsvFile == Path.GetFileName(_currentCsvFilePath))
+                {
+                    _currentCsvFilePath = null;
+                    _csvData = null;
+                    _bars.Clear();
+                    _sortingResult = null;
+                    _currentStepIndex = -1;
+                    CanStart = false;
+                    CanPause = false;
+                    CanStep = false;
+                    CanGoBack = false;
+                    StatusText = "Ready";
                 }
             }
         }
@@ -259,13 +297,13 @@ namespace Lab4.ViewModels
             var indices = Enumerable.Range(0, _csvData.Rows.Count).ToArray();
 
             // Create the sorting result with initial state
-            var initialArray = indices.Select(i => new Dictionary<string, string> { 
-                { "index", i.ToString() } 
+            var initialArray = indices.Select(i => new Dictionary<string, string> {
+                { "index", i.ToString() }
             }).ToArray();
             var initialStep = StatusSortingStep<Dictionary<string, string>>.Completed(initialArray);
             _sortingResult = new SortingResult<Dictionary<string, string>>(new List<SortingStep<Dictionary<string, string>>> { initialStep });
             _currentStepIndex = 0;
-            
+
             // Update visualization
             UpdateBars(_sortingResult.Steps[0]);
             StatusText = "CSV data loaded";
@@ -282,6 +320,15 @@ namespace Lab4.ViewModels
             OnPropertyChanged(nameof(CanPause));
             OnPropertyChanged(nameof(CanStep));
             OnPropertyChanged(nameof(CanGoBack));
+        }
+
+        private void LoadSelectedCsvFile()
+        {
+            if (SelectedCsvFile != null && _currentCsvFilePath != null)
+            {
+                _csvData = CsvData.LoadFromFile(_currentCsvFilePath);
+                LoadCsvDataIntoArray();
+            }
         }
 
         private void ExecuteGenerateArray()
@@ -312,7 +359,7 @@ namespace Lab4.ViewModels
                 {
                     // If we're at the end, generate new sorting result
                     _cancellationTokenSource = new CancellationTokenSource();
-                    var values = _csvData.Rows.Select(row => 
+                    var values = _csvData.Rows.Select(row =>
                         row.ToDictionary(column => column.Key, column => column.Value)
                     ).ToArray();
                     _sortingResult = await _sortingAlgorithm.SortAsync(values, _cancellationTokenSource.Token);
@@ -344,7 +391,7 @@ namespace Lab4.ViewModels
             StatusText = step.Description;
             LogEvent($"Step {_currentStepIndex + 1}: {step.Description}");
             _currentStepIndex++;
-            
+
             UpdateStepButtons();
         }
 
@@ -357,7 +404,7 @@ namespace Lab4.ViewModels
             UpdateBars(step);
             StatusText = step.Description;
             LogEvent($"Went back to step {_currentStepIndex + 1}: {step.Description}");
-            
+
             UpdateStepButtons();
         }
 
@@ -371,14 +418,14 @@ namespace Lab4.ViewModels
             }
 
             // Create initial step to show unsorted array
-            var randomArray = array.Select((value, index) => new Dictionary<string, string> { 
+            var randomArray = array.Select((value, index) => new Dictionary<string, string> {
                 { "index", index.ToString() },
                 { "value", value.ToString() }
             }).ToArray();
             var initialStep = StatusSortingStep<Dictionary<string, string>>.Completed(randomArray);
             _sortingResult = new SortingResult<Dictionary<string, string>>(new List<SortingStep<Dictionary<string, string>>> { initialStep });
             _currentStepIndex = 0;
-            
+
             // Update visualization
             UpdateBars(_sortingResult.Steps[0]);
             StatusText = "Generated new array";
@@ -489,9 +536,9 @@ namespace Lab4.ViewModels
 
                 double widthPercentage = maxNormalizedValue;
                 bar.ColumnValues = columnValues;
-                
+
                 int currentIndent = _elementIndentations[i] * indentSize;
-                
+
                 bar.Width = widthPercentage * (maxWidth - currentIndent);
                 bar.Height = barHeight;
                 bar.Left = padding + currentIndent;

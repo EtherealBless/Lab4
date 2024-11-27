@@ -23,12 +23,12 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Rectangle Width="{Binding Width}" 
-                                 Height="{Binding Height}"
-                                 Fill="{Binding Fill}">
+                        <Rectangle Width="{Binding Width}"
+                                   Height="{Binding Height}"
+                                   Fill="{Binding Fill}">
                             <Rectangle.RenderTransform>
-                                <TranslateTransform X="{Binding Left}" 
-                                                  Y="{Binding Top}"/>
+                                <TranslateTransform X="{Binding Left}"
+                                                    Y="{Binding Top}"/>
                             </Rectangle.RenderTransform>
                         </Rectangle>
                     </DataTemplate>
@@ -46,27 +46,40 @@
 
             <GroupBox Header="Controls" Margin="0,10,0,0">
                 <StackPanel Margin="5">
-                    <Button Content="Open CSV File" 
-                            Command="{Binding OpenCsvCommand}"
-                            Margin="0,0,0,5"/>
-                    <Button Content="Start" 
+                    
+                    <Button Content="Start"
                             Command="{Binding StartCommand}"
                             Margin="0,0,0,5"/>
-                    <Button Content="Pause" 
+                    <Button Content="Pause"
                             Command="{Binding PauseCommand}"
                             Margin="0,0,0,5"/>
-                    <Button Content="Step" 
+                    <Button Content="Step"
                             Command="{Binding StepCommand}"
                             Margin="0,0,0,5"/>
-                    <Button Content="Go Back" 
+                    <Button Content="Go Back"
                             Command="{Binding GoBackCommand}"
                             Margin="0,0,0,5"/>
-                    <Slider Value="{Binding Speed}" 
-                            Minimum="1" Maximum="10" 
+                    <Slider Value="{Binding Speed}"
+                            Minimum="1" Maximum="10"
                             TickFrequency="1" IsSnapToTickEnabled="True"
                             Margin="0,5"/>
-                    <TextBlock Text="{Binding Speed, StringFormat='Speed: {0}'}" 
+                    <TextBlock Text="{Binding Speed, StringFormat='Speed: {0}'}"
                              HorizontalAlignment="Center"/>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Opened CSV Files" Margin="0,10,0,0">
+                <StackPanel Margin="5">
+                    <Button Content="Remove Selected File"
+                            Command="{Binding RemoveCsvFileCommand}"
+                            Margin="0,0,0,5"/>
+                    <Button Content="Open CSV File"
+                            Command="{Binding OpenCsvCommand}"
+                            Margin="0,0,0,5"/>
+                    <ComboBox ItemsSource="{Binding OpenedCsvFiles}"
+                            SelectedItem="{Binding SelectedCsvFile}"
+                            Margin="0,0,0,5"/>
+                    
                 </StackPanel>
             </GroupBox>
 
@@ -85,13 +98,13 @@
             </GroupBox>
 
             <GroupBox Header="Status" Margin="0,10,0,0">
-                <TextBlock Text="{Binding StatusText}" 
-                         TextWrapping="Wrap" 
+                <TextBlock Text="{Binding StatusText}"
+                         TextWrapping="Wrap"
                          Margin="5"/>
             </GroupBox>
 
             <GroupBox Header="Event Log" Margin="0,10,0,0">
-                <ListBox ItemsSource="{Binding EventLog}" 
+                <ListBox ItemsSource="{Binding EventLog}"
                         Height="100"
                         Margin="5"/>
             </GroupBox>
